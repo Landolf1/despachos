@@ -1,7 +1,6 @@
 from fastapi import FastAPI, APIRouter, HTTPException
 from dotenv import load_dotenv
 from starlette.middleware.cors import CORSMiddleware
-from motor.motor_asyncio import AsyncIOMotorClient
 import os
 import logging
 from pathlib import Path
@@ -9,18 +8,24 @@ from pydantic import BaseModel, Field
 from typing import List, Optional
 import uuid
 from datetime import datetime, timezone
+from supabase import create_client, Client
+import pandas as pd
+from io import BytesIO
+from fastapi.responses import StreamingResponse
 
 
 ROOT_DIR = Path(__file__).parent
 load_dotenv(ROOT_DIR / '.env')
 
-# MongoDB connection
-mongo_url = os.environ['MONGO_URL']
-client = AsyncIOMotorClient(mongo_url)
-db = client[os.environ['DB_NAME']]
+# Supabase configuration
+SUPABASE_URL = "https://zptfgrmjfnadngrqeakx.supabase.co"
+SUPABASE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InpwdGZncm1qZm5hZG5ncnFlYWt4Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTkxNjg3NDYsImV4cCI6MjA3NDc0NDc0Nn0.wpB93p-_MR7pCAwFVUbeCt8a0uyZmdrBwwvjr8YTP5Q"
 
-# Create the main app without a prefix
-app = FastAPI(title="Sistema de Control de Despachos")
+# Initialize Supabase client
+supabase: Client = create_client(SUPABASE_URL, SUPABASE_KEY)
+
+# Create the main app
+app = FastAPI(title="Sistema de Control de Despachos - Supabase")
 
 # Create a router with the /api prefix
 api_router = APIRouter(prefix="/api")
@@ -39,7 +44,7 @@ class MessengerCreate(BaseModel):
 
 class DispatchItem(BaseModel):
     card_number: str
-    client_number: str
+    client_name: str  # Changed from client_number to client_name
 
 class Dispatch(BaseModel):
     id: str = Field(default_factory=lambda: str(uuid.uuid4()))
@@ -54,143 +59,309 @@ class DispatchCreate(BaseModel):
     messenger_id: str
     items: List[DispatchItem]
 
-class DispatchReport(BaseModel):
-    date: str
-    messenger_name: str
-    messenger_contact: str
-    total_cards: int
-    dispatches: List[dict]
-
 # Helper functions
-def prepare_for_mongo(data):
-    if isinstance(data, dict):
-        if 'created_at' in data and isinstance(data['created_at'], datetime):
-            data['created_at'] = data['created_at'].isoformat()
-        if 'date' in data and isinstance(data['date'], str):
-            pass  # Already string
-    return data
+def prepare_datetime_for_supabase(dt):
+    if isinstance(dt, datetime):
+        return dt.isoformat()
+    return dt
 
-def parse_from_mongo(item):
-    if isinstance(item, dict):
-        if 'created_at' in item and isinstance(item['created_at'], str):
-            item['created_at'] = datetime.fromisoformat(item['created_at'])
-        if '_id' in item:
-            del item['_id']  # Remove MongoDB ObjectId
-    return item
+def parse_datetime_from_supabase(dt_str):
+    if isinstance(dt_str, str):
+        return datetime.fromisoformat(dt_str.replace('Z', '+00:00'))
+    return dt_str
+
+# Initialize database tables (run once)
+async def init_database():
+    try:
+        # Create messengers table if not exists
+        messengers_table = supabase.table('messengers').select('id').limit(1).execute()
+        
+        # Create dispatches table if not exists  
+        dispatches_table = supabase.table('dispatches').select('id').limit(1).execute()
+        
+        # Create dispatch_items table if not exists
+        dispatch_items_table = supabase.table('dispatch_items').select('id').limit(1).execute()
+        
+        logging.info("Database tables verified successfully")
+    except Exception as e:
+        logging.warning(f"Database table verification: {str(e)}")
 
 # Messenger endpoints
 @api_router.post("/messengers", response_model=Messenger)
 async def create_messenger(messenger_data: MessengerCreate):
-    messenger = Messenger(**messenger_data.dict())
-    messenger_dict = prepare_for_mongo(messenger.dict())
-    await db.messengers.insert_one(messenger_dict)
-    return messenger
+    try:
+        messenger = Messenger(**messenger_data.dict())
+        
+        # Insert into Supabase
+        result = supabase.table('messengers').insert({
+            'id': messenger.id,
+            'name': messenger.name,
+            'contact_number': messenger.contact_number,
+            'created_at': prepare_datetime_for_supabase(messenger.created_at)
+        }).execute()
+        
+        if result.data:
+            return messenger
+        else:
+            raise HTTPException(status_code=500, detail="Error creating messenger")
+    except Exception as e:
+        logging.error(f"Error creating messenger: {str(e)}")
+        raise HTTPException(status_code=500, detail=str(e))
 
 @api_router.get("/messengers", response_model=List[Messenger])
 async def get_messengers():
-    messengers = await db.messengers.find().to_list(1000)
-    return [Messenger(**parse_from_mongo(m)) for m in messengers]
+    try:
+        result = supabase.table('messengers').select('*').order('created_at', desc=True).execute()
+        
+        messengers = []
+        for item in result.data:
+            messenger = Messenger(
+                id=item['id'],
+                name=item['name'],
+                contact_number=item['contact_number'],
+                created_at=parse_datetime_from_supabase(item['created_at'])
+            )
+            messengers.append(messenger)
+        
+        return messengers
+    except Exception as e:
+        logging.error(f"Error fetching messengers: {str(e)}")
+        raise HTTPException(status_code=500, detail=str(e))
 
 @api_router.get("/messengers/{messenger_id}", response_model=Messenger)
 async def get_messenger(messenger_id: str):
-    messenger = await db.messengers.find_one({"id": messenger_id})
-    if not messenger:
+    try:
+        result = supabase.table('messengers').select('*').eq('id', messenger_id).single().execute()
+        
+        if result.data:
+            item = result.data
+            return Messenger(
+                id=item['id'],
+                name=item['name'],
+                contact_number=item['contact_number'],
+                created_at=parse_datetime_from_supabase(item['created_at'])
+            )
+        else:
+            raise HTTPException(status_code=404, detail="Mensajero no encontrado")
+    except Exception as e:
+        logging.error(f"Error fetching messenger: {str(e)}")
         raise HTTPException(status_code=404, detail="Mensajero no encontrado")
-    return Messenger(**parse_from_mongo(messenger))
 
 @api_router.delete("/messengers/{messenger_id}")
 async def delete_messenger(messenger_id: str):
-    result = await db.messengers.delete_one({"id": messenger_id})
-    if result.deleted_count == 0:
-        raise HTTPException(status_code=404, detail="Mensajero no encontrado")
-    return {"message": "Mensajero eliminado exitosamente"}
+    try:
+        result = supabase.table('messengers').delete().eq('id', messenger_id).execute()
+        
+        if result.data:
+            return {"message": "Mensajero eliminado exitosamente"}
+        else:
+            raise HTTPException(status_code=404, detail="Mensajero no encontrado")
+    except Exception as e:
+        logging.error(f"Error deleting messenger: {str(e)}")
+        raise HTTPException(status_code=500, detail=str(e))
 
 # Dispatch endpoints
 @api_router.post("/dispatches", response_model=Dispatch)
 async def create_dispatch(dispatch_data: DispatchCreate):
-    # Get messenger info
-    messenger = await db.messengers.find_one({"id": dispatch_data.messenger_id})
-    if not messenger:
-        raise HTTPException(status_code=404, detail="Mensajero no encontrado")
-    
-    # Create dispatch
-    now = datetime.now(timezone.utc)
-    dispatch = Dispatch(
-        messenger_id=dispatch_data.messenger_id,
-        messenger_name=messenger["name"],
-        items=dispatch_data.items,
-        total_cards=len(dispatch_data.items),
-        created_at=now,
-        date=now.strftime("%Y-%m-%d")
-    )
-    
-    dispatch_dict = prepare_for_mongo(dispatch.dict())
-    await db.dispatches.insert_one(dispatch_dict)
-    return dispatch
+    try:
+        # Get messenger info
+        messenger_result = supabase.table('messengers').select('*').eq('id', dispatch_data.messenger_id).single().execute()
+        
+        if not messenger_result.data:
+            raise HTTPException(status_code=404, detail="Mensajero no encontrado")
+        
+        messenger = messenger_result.data
+        
+        # Create dispatch
+        now = datetime.now(timezone.utc)
+        dispatch = Dispatch(
+            messenger_id=dispatch_data.messenger_id,
+            messenger_name=messenger["name"],
+            items=dispatch_data.items,
+            total_cards=len(dispatch_data.items),
+            created_at=now,
+            date=now.strftime("%Y-%m-%d")
+        )
+        
+        # Insert dispatch into Supabase
+        dispatch_result = supabase.table('dispatches').insert({
+            'id': dispatch.id,
+            'messenger_id': dispatch.messenger_id,
+            'messenger_name': dispatch.messenger_name,
+            'total_cards': dispatch.total_cards,
+            'created_at': prepare_datetime_for_supabase(dispatch.created_at),
+            'date': dispatch.date
+        }).execute()
+        
+        if not dispatch_result.data:
+            raise HTTPException(status_code=500, detail="Error creating dispatch")
+        
+        # Insert dispatch items
+        for item in dispatch.items:
+            supabase.table('dispatch_items').insert({
+                'id': str(uuid.uuid4()),
+                'dispatch_id': dispatch.id,
+                'card_number': item.card_number,
+                'client_name': item.client_name
+            }).execute()
+        
+        return dispatch
+        
+    except HTTPException:
+        raise
+    except Exception as e:
+        logging.error(f"Error creating dispatch: {str(e)}")
+        raise HTTPException(status_code=500, detail=str(e))
 
 @api_router.get("/dispatches", response_model=List[Dispatch])
 async def get_dispatches(date: Optional[str] = None, messenger_id: Optional[str] = None):
-    query = {}
-    if date:
-        query["date"] = date
-    if messenger_id:
-        query["messenger_id"] = messenger_id
-    
-    dispatches = await db.dispatches.find(query).sort("created_at", -1).to_list(1000)
-    return [Dispatch(**parse_from_mongo(d)) for d in dispatches]
+    try:
+        query = supabase.table('dispatches').select('*')
+        
+        if date:
+            query = query.eq('date', date)
+        if messenger_id:
+            query = query.eq('messenger_id', messenger_id)
+        
+        result = query.order('created_at', desc=True).execute()
+        
+        dispatches = []
+        for dispatch_data in result.data:
+            # Get dispatch items
+            items_result = supabase.table('dispatch_items').select('*').eq('dispatch_id', dispatch_data['id']).execute()
+            
+            items = [DispatchItem(card_number=item['card_number'], client_name=item['client_name']) for item in items_result.data]
+            
+            dispatch = Dispatch(
+                id=dispatch_data['id'],
+                messenger_id=dispatch_data['messenger_id'],
+                messenger_name=dispatch_data['messenger_name'],
+                items=items,
+                total_cards=dispatch_data['total_cards'],
+                created_at=parse_datetime_from_supabase(dispatch_data['created_at']),
+                date=dispatch_data['date']
+            )
+            dispatches.append(dispatch)
+        
+        return dispatches
+        
+    except Exception as e:
+        logging.error(f"Error fetching dispatches: {str(e)}")
+        raise HTTPException(status_code=500, detail=str(e))
 
 @api_router.get("/dispatches/today", response_model=List[Dispatch])
 async def get_today_dispatches():
     today = datetime.now(timezone.utc).strftime("%Y-%m-%d")
-    dispatches = await db.dispatches.find({"date": today}).sort("created_at", -1).to_list(1000)
-    return [Dispatch(**parse_from_mongo(d)) for d in dispatches]
+    return await get_dispatches(date=today)
 
 @api_router.get("/reports/daily")
 async def get_daily_report(date: Optional[str] = None):
-    if not date:
-        date = datetime.now(timezone.utc).strftime("%Y-%m-%d")
-    
-    # Get all dispatches for the date
-    dispatches = await db.dispatches.find({"date": date}).to_list(1000)
-    
-    # Group by messenger
-    messenger_reports = {}
-    for dispatch in dispatches:
-        messenger_id = dispatch["messenger_id"]
-        if messenger_id not in messenger_reports:
-            messenger_reports[messenger_id] = {
-                "messenger_name": dispatch["messenger_name"],
-                "total_cards": 0,
-                "dispatches": []
-            }
+    try:
+        if not date:
+            date = datetime.now(timezone.utc).strftime("%Y-%m-%d")
         
-        messenger_reports[messenger_id]["total_cards"] += dispatch["total_cards"]
-        messenger_reports[messenger_id]["dispatches"].append({
-            "id": dispatch["id"],
-            "time": dispatch["created_at"],
-            "cards": dispatch["total_cards"],
-            "items": dispatch["items"]
-        })
-    
-    # Get messenger contact info
-    for messenger_id, report in messenger_reports.items():
-        messenger = await db.messengers.find_one({"id": messenger_id})
-        if messenger:
-            report["messenger_contact"] = messenger["contact_number"]
-        else:
-            report["messenger_contact"] = "No disponible"
-    
-    return {
-        "date": date,
-        "total_messengers": len(messenger_reports),
-        "total_dispatches": len(dispatches),
-        "total_cards": sum(r["total_cards"] for r in messenger_reports.values()),
-        "messengers": messenger_reports
-    }
+        # Get all dispatches for the date
+        dispatches = await get_dispatches(date=date)
+        
+        # Group by messenger
+        messenger_reports = {}
+        for dispatch in dispatches:
+            messenger_id = dispatch.messenger_id
+            if messenger_id not in messenger_reports:
+                messenger_reports[messenger_id] = {
+                    "messenger_name": dispatch.messenger_name,
+                    "total_cards": 0,
+                    "dispatches": []
+                }
+            
+            messenger_reports[messenger_id]["total_cards"] += dispatch.total_cards
+            messenger_reports[messenger_id]["dispatches"].append({
+                "id": dispatch.id,
+                "time": dispatch.created_at.isoformat(),
+                "cards": dispatch.total_cards,
+                "items": [item.dict() for item in dispatch.items]
+            })
+        
+        # Get messenger contact info
+        for messenger_id, report in messenger_reports.items():
+            try:
+                messenger_result = supabase.table('messengers').select('contact_number').eq('id', messenger_id).single().execute()
+                if messenger_result.data:
+                    report["messenger_contact"] = messenger_result.data["contact_number"]
+                else:
+                    report["messenger_contact"] = "No disponible"
+            except:
+                report["messenger_contact"] = "No disponible"
+        
+        return {
+            "date": date,
+            "total_messengers": len(messenger_reports),
+            "total_dispatches": len(dispatches),
+            "total_cards": sum(r["total_cards"] for r in messenger_reports.values()),
+            "messengers": messenger_reports
+        }
+        
+    except Exception as e:
+        logging.error(f"Error generating daily report: {str(e)}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+@api_router.get("/reports/export-excel")
+async def export_daily_report_excel(date: Optional[str] = None):
+    try:
+        if not date:
+            date = datetime.now(timezone.utc).strftime("%Y-%m-%d")
+        
+        # Get report data
+        report = await get_daily_report(date)
+        
+        # Create Excel file
+        output = BytesIO()
+        
+        # Create DataFrames
+        summary_data = {
+            'Métrica': ['Fecha', 'Total Mensajeros', 'Total Despachos', 'Total Tarjetas'],
+            'Valor': [report['date'], report['total_messengers'], report['total_dispatches'], report['total_cards']]
+        }
+        
+        detail_data = []
+        for messenger_id, messenger_data in report['messengers'].items():
+            for dispatch in messenger_data['dispatches']:
+                for item in dispatch['items']:
+                    detail_data.append({
+                        'Mensajero': messenger_data['messenger_name'],
+                        'Contacto': messenger_data['messenger_contact'],
+                        'Fecha': date,
+                        'Hora': dispatch['time'].split('T')[1].split('.')[0],
+                        'Número Tarjeta': item['card_number'],
+                        'Nombre Cliente': item['client_name']
+                    })
+        
+        # Write to Excel
+        with pd.ExcelWriter(output, engine='openpyxl') as writer:
+            pd.DataFrame(summary_data).to_excel(writer, sheet_name='Resumen', index=False)
+            if detail_data:
+                pd.DataFrame(detail_data).to_excel(writer, sheet_name='Detalle', index=False)
+        
+        output.seek(0)
+        
+        # Return Excel file
+        headers = {
+            'Content-Disposition': f'attachment; filename=reporte_despachos_{date}.xlsx'
+        }
+        
+        return StreamingResponse(
+            BytesIO(output.read()),
+            media_type='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+            headers=headers
+        )
+        
+    except Exception as e:
+        logging.error(f"Error exporting Excel: {str(e)}")
+        raise HTTPException(status_code=500, detail=str(e))
 
 @api_router.get("/")
 async def root():
-    return {"message": "Sistema de Control de Despachos API"}
+    return {"message": "Sistema de Control de Despachos API - Supabase"}
 
 # Include the router in the main app
 app.include_router(api_router)
@@ -198,7 +369,7 @@ app.include_router(api_router)
 app.add_middleware(
     CORSMiddleware,
     allow_credentials=True,
-    allow_origins=os.environ.get('CORS_ORIGINS', '*').split(','),
+    allow_origins=["*"],
     allow_methods=["*"],
     allow_headers=["*"],
 )
@@ -210,6 +381,6 @@ logging.basicConfig(
 )
 logger = logging.getLogger(__name__)
 
-@app.on_event("shutdown")
-async def shutdown_db_client():
-    client.close()
+@app.on_event("startup")
+async def startup_event():
+    await init_database()
