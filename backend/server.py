@@ -230,7 +230,7 @@ async def get_dispatches(date: Optional[str] = None, messenger_id: Optional[str]
             # Get dispatch items
             items_result = supabase.table('dispatch_items').select('*').eq('dispatch_id', dispatch_data['id']).execute()
             
-            items = [DispatchItem(card_number=item['card_number'], client_name=item['client_name']) for item in items_result.data]
+            items = [DispatchItem(card_number=item['card_number'], card_type=item['card_type']) for item in items_result.data]
             
             dispatch = Dispatch(
                 id=dispatch_data['id'],
