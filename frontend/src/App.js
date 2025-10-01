@@ -157,26 +157,59 @@ function App() {
     }
   };
 
+  const processBarcode = (barcode) => {
+    if (!selectedMessenger) {
+      showNotification('Seleccione un mensajero primero', 'error');
+      return;
+    }
+
+    // Check if already scanned
+    const alreadyScanned = scannedItems.find(item => item.card_number === barcode);
+    if (alreadyScanned) {
+      showNotification('Esta tarjeta ya fue escaneada', 'error');
+      return;
+    }
+
+    // Add card with default type (will be changed manually if needed)
+    const newItem = { 
+      card_number: barcode, 
+      card_type: 'Débito' // Default type
+    };
+    setScannedItems(prev => [...prev, newItem]);
+    
+    // Audio feedback
+    const audio = new Audio('data:audio/wav;base64,UklGRnoGAABXQVZFZm10IBAAAAABAAEAQB8AAEAfAAABAAgAZGF0YQoGAACBhYqFbF1fdJivrJBhNjVgodDbq2EcBj+a2/LDciUFLIHO8tiJNwgZaLvt559NEAxQp+PwtmMcBjiR1/LMeSwFJHfH8N2QQAoUXrTp66hVFApGn+DyvmEcBzuq3/PHfS0FKXnU8N2NRQ4ZaLvz6KNREAx/kOLtvmUiCjeP0fPRhzAEHny98OOPQAwXX7nn7qVUBj1/lODxummNLwgZaLnq4qNNBjxnq+LXgCkELHXJ8N6QQAtVo+H0vmlhFgdMm9r5wms0DEe/xd6lUBYGPXi48NyOPgcPX7ns4qBLBA0qL5c0j');
+    audio.play().catch(() => {});
+    
+    showNotification(`Tarjeta agregada: ${barcode}`);
+  };
+
   const manualAddCard = () => {
-    setNewCard({ card_number: '', client_name: '' });
+    setNewCard({ card_number: '', card_type: 'Débito' });
     setShowAddCardModal(true);
   };
 
   const handleAddCard = () => {
-    if (!newCard.card_number || !newCard.client_name) {
-      showNotification('Complete todos los campos', 'error');
+    if (!newCard.card_number) {
+      showNotification('Ingrese el número de tarjeta', 'error');
       return;
     }
 
     const alreadyScanned = scannedItems.find(item => item.card_number === newCard.card_number);
     if (!alreadyScanned) {
       setScannedItems(prev => [...prev, { ...newCard }]);
-      showNotification(`Tarjeta agregada:\nNúmero: ${newCard.card_number}\nCliente: ${newCard.client_name}`);
+      showNotification(`Tarjeta agregada: ${newCard.card_number}`);
       setShowAddCardModal(false);
-      setNewCard({ card_number: '', client_name: '' });
+      setNewCard({ card_number: '', card_type: 'Débito' });
     } else {
       showNotification('Esta tarjeta ya fue agregada', 'error');
     }
+  };
+
+  const updateCardType = (index, newType) => {
+    setScannedItems(prev => prev.map((item, i) => 
+      i === index ? { ...item, card_type: newType } : item
+    ));
   };
 
   const removeScannedItem = (index) => {
