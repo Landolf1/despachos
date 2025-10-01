@@ -656,10 +656,10 @@ function App() {
 
       {/* Add Card Modal */}
       {showAddCardModal && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-          <div className="bg-white rounded-2xl p-8 max-w-md w-full mx-4 shadow-2xl">
+        <div className="fixed inset-0 bg-black bg-opacity-50 backdrop-blur-sm flex items-center justify-center z-50 p-4">
+          <div className="bg-white/90 backdrop-blur-md rounded-2xl p-8 max-w-md w-full shadow-2xl border border-white/20 transform transition-all duration-300 scale-100">
             <div className="flex items-center mb-6">
-              <div className="w-12 h-12 bg-blue-100 rounded-xl flex items-center justify-center mr-4">
+              <div className="w-12 h-12 bg-gradient-to-r from-blue-100 to-blue-200 rounded-xl flex items-center justify-center mr-4">
                 <span className="text-2xl">💳</span>
               </div>
               <div>
@@ -676,7 +676,7 @@ function App() {
                   placeholder="Ingrese el número de tarjeta"
                   value={newCard.card_number}
                   onChange={(e) => setNewCard(prev => ({ ...prev, card_number: e.target.value }))}
-                  className="w-full p-4 border-2 border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white"
+                  className="w-full p-4 border-2 border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white/80 backdrop-blur-sm transition-all duration-200"
                   autoFocus
                 />
               </div>
@@ -688,7 +688,12 @@ function App() {
                   placeholder="Ingrese el nombre del cliente"
                   value={newCard.client_name}
                   onChange={(e) => setNewCard(prev => ({ ...prev, client_name: e.target.value }))}
-                  className="w-full p-4 border-2 border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white"
+                  className="w-full p-4 border-2 border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white/80 backdrop-blur-sm transition-all duration-200"
+                  onKeyPress={(e) => {
+                    if (e.key === 'Enter') {
+                      handleAddCard();
+                    }
+                  }}
                 />
               </div>
             </div>
@@ -696,19 +701,25 @@ function App() {
             <div className="flex gap-3">
               <button
                 onClick={handleAddCard}
-                className="flex-1 bg-gradient-to-r from-blue-500 to-blue-600 text-white py-3 px-6 rounded-xl hover:from-blue-600 hover:to-blue-700 transition-all duration-200 font-semibold flex items-center justify-center gap-2"
+                disabled={loading || !newCard.card_number || !newCard.client_name}
+                className="flex-1 bg-gradient-to-r from-blue-600 to-blue-700 text-white py-3 px-6 rounded-xl hover:from-blue-700 hover:to-blue-800 transition-all duration-200 font-semibold flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed transform hover:scale-105 disabled:scale-100 shadow-lg shadow-blue-600/25"
               >
-                <span className="text-lg">✅</span>
+                {loading ? (
+                  <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin"></div>
+                ) : (
+                  <span>✅</span>
+                )}
                 Agregar
               </button>
+              
               <button
                 onClick={() => {
                   setShowAddCardModal(false);
                   setNewCard({ card_number: '', client_name: '' });
                 }}
-                className="flex-1 bg-gray-400 text-white py-3 px-6 rounded-xl hover:bg-gray-500 transition-colors font-semibold flex items-center justify-center gap-2"
+                className="flex-1 bg-gray-500 text-white py-3 px-6 rounded-xl hover:bg-gray-600 transition-all duration-200 font-semibold flex items-center justify-center gap-2 transform hover:scale-105"
               >
-                <span className="text-lg">❌</span>
+                <span>❌</span>
                 Cancelar
               </button>
             </div>
