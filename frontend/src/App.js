@@ -371,6 +371,22 @@ function App() {
                 </select>
               </div>
 
+              {/* Scanner Info */}
+              <div className="mb-6 bg-blue-50 rounded-xl p-4 border border-blue-200">
+                <div className="flex items-center">
+                  <span className="text-2xl mr-3">🔍</span>
+                  <div>
+                    <h3 className="font-semibold text-blue-800">Escáner de Pistola Activo</h3>
+                    <p className="text-blue-600 text-sm">
+                      {selectedMessenger 
+                        ? `Listo para escanear tarjetas para ${messengers.find(m => m.id === selectedMessenger)?.name || 'mensajero seleccionado'}`
+                        : 'Seleccione un mensajero para activar el escáner'
+                      }
+                    </p>
+                  </div>
+                </div>
+              </div>
+
               {/* Add Card Controls */}
               <div className="flex flex-wrap gap-4 mb-8">
                 <button
@@ -378,7 +394,7 @@ function App() {
                   className="bg-gradient-to-r from-blue-500 to-blue-600 text-white px-8 py-4 rounded-xl hover:from-blue-600 hover:to-blue-700 transition-all duration-200 font-semibold flex items-center gap-3 shadow-lg shadow-blue-500/25 transform hover:scale-105"
                 >
                   <span className="text-xl">➕</span>
-                  Agregar Tarjeta
+                  Agregar Manual
                 </button>
               </div>
 
