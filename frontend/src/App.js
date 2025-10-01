@@ -793,7 +793,7 @@ function App() {
             <div className="flex gap-3">
               <button
                 onClick={handleAddCard}
-                disabled={loading || !newCard.card_number || !newCard.client_name}
+                disabled={loading || !newCard.card_number}
                 className="flex-1 bg-gradient-to-r from-blue-600 to-blue-700 text-white py-3 px-6 rounded-xl hover:from-blue-700 hover:to-blue-800 transition-all duration-200 font-semibold flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed transform hover:scale-105 disabled:scale-100 shadow-lg shadow-blue-600/25"
               >
                 {loading ? (
@@ -807,7 +807,7 @@ function App() {
               <button
                 onClick={() => {
                   setShowAddCardModal(false);
-                  setNewCard({ card_number: '', client_name: '' });
+                  setNewCard({ card_number: '', card_type: 'Débito' });
                 }}
                 className="flex-1 bg-gray-500 text-white py-3 px-6 rounded-xl hover:bg-gray-600 transition-all duration-200 font-semibold flex items-center justify-center gap-2 transform hover:scale-105"
               >
