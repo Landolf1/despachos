@@ -27,7 +27,39 @@ function App() {
     fetchMessengers();
     fetchTodayDispatches();
     fetchDailyReport();
-  }, []);
+
+    // Barcode scanner listener
+    const handleKeyDown = (event) => {
+      if (currentView === 'dispatch' && selectedMessenger) {
+        const currentTime = Date.now();
+        
+        // If Enter key pressed, process the barcode
+        if (event.key === 'Enter' && barcodeBuffer.length > 0) {
+          event.preventDefault();
+          processBarcode(barcodeBuffer);
+          setBarcodeBuffer('');
+          setLastKeystroke(0);
+          return;
+        }
+        
+        // If alphanumeric character and typing fast (barcode scanner pattern)
+        if (/^[a-zA-Z0-9]$/.test(event.key)) {
+          event.preventDefault();
+          
+          // If too much time passed, start new barcode
+          if (currentTime - lastKeystroke > 100) {
+            setBarcodeBuffer(event.key);
+          } else {
+            setBarcodeBuffer(prev => prev + event.key);
+          }
+          setLastKeystroke(currentTime);
+        }
+      }
+    };
+
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [currentView, selectedMessenger, barcodeBuffer, lastKeystroke]);
 
   // Notification system
   const showNotification = (message, type = 'success') => {
