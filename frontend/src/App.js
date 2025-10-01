@@ -1,6 +1,5 @@
 import React, { useState, useEffect } from 'react';
 import { createClient } from '@supabase/supabase-js';
-import Quagga from 'quagga';
 import './App.css';
 
 const BACKEND_URL = process.env.REACT_APP_BACKEND_URL;
