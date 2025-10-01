@@ -414,9 +414,20 @@ function App() {
                               <div className="w-10 h-10 bg-blue-100 rounded-lg flex items-center justify-center">
                                 <span className="text-sm font-bold text-blue-600">#{index + 1}</span>
                               </div>
-                              <div>
+                              <div className="flex-1">
                                 <div className="font-semibold text-gray-800">Tarjeta: {item.card_number}</div>
-                                <div className="text-gray-600 text-sm">Cliente: {item.client_name}</div>
+                                <div className="flex items-center space-x-2 mt-1">
+                                  <span className="text-gray-600 text-sm">Tipo:</span>
+                                  <select
+                                    value={item.card_type}
+                                    onChange={(e) => updateCardType(index, e.target.value)}
+                                    className="text-sm border border-gray-300 rounded px-2 py-1 focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                                  >
+                                    <option value="Débito">Débito</option>
+                                    <option value="Masivas">Masivas</option>
+                                    <option value="Tracking">Tracking</option>
+                                  </select>
+                                </div>
                               </div>
                             </div>
                           </div>
