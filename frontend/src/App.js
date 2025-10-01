@@ -656,6 +656,68 @@ function App() {
           </div>
         )}
       </main>
+
+      {/* Add Card Modal */}
+      {showAddCardModal && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+          <div className="bg-white rounded-2xl p-8 max-w-md w-full mx-4 shadow-2xl">
+            <div className="flex items-center mb-6">
+              <div className="w-12 h-12 bg-blue-100 rounded-xl flex items-center justify-center mr-4">
+                <span className="text-2xl">💳</span>
+              </div>
+              <div>
+                <h3 className="text-xl font-bold text-gray-800">Agregar Tarjeta</h3>
+                <p className="text-gray-600">Ingrese los datos de la tarjeta</p>
+              </div>
+            </div>
+            
+            <div className="space-y-4 mb-6">
+              <div>
+                <label className="block text-sm font-semibold text-gray-700 mb-2">Número de Tarjeta</label>
+                <input
+                  type="text"
+                  placeholder="Ingrese el número de tarjeta"
+                  value={newCard.card_number}
+                  onChange={(e) => setNewCard(prev => ({ ...prev, card_number: e.target.value }))}
+                  className="w-full p-4 border-2 border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white"
+                  autoFocus
+                />
+              </div>
+              
+              <div>
+                <label className="block text-sm font-semibold text-gray-700 mb-2">Nombre del Cliente</label>
+                <input
+                  type="text"
+                  placeholder="Ingrese el nombre del cliente"
+                  value={newCard.client_name}
+                  onChange={(e) => setNewCard(prev => ({ ...prev, client_name: e.target.value }))}
+                  className="w-full p-4 border-2 border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white"
+                />
+              </div>
+            </div>
+            
+            <div className="flex gap-3">
+              <button
+                onClick={handleAddCard}
+                className="flex-1 bg-gradient-to-r from-blue-500 to-blue-600 text-white py-3 px-6 rounded-xl hover:from-blue-600 hover:to-blue-700 transition-all duration-200 font-semibold flex items-center justify-center gap-2"
+              >
+                <span className="text-lg">✅</span>
+                Agregar
+              </button>
+              <button
+                onClick={() => {
+                  setShowAddCardModal(false);
+                  setNewCard({ card_number: '', client_name: '' });
+                }}
+                className="flex-1 bg-gray-400 text-white py-3 px-6 rounded-xl hover:bg-gray-500 transition-colors font-semibold flex items-center justify-center gap-2"
+              >
+                <span className="text-lg">❌</span>
+                Cancelar
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
