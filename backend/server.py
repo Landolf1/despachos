@@ -202,7 +202,7 @@ async def create_dispatch(dispatch_data: DispatchCreate):
                 'id': str(uuid.uuid4()),
                 'dispatch_id': dispatch.id,
                 'card_number': item.card_number,
-                'client_name': item.client_name
+                'card_type': item.card_type
             }).execute()
         
         return dispatch
