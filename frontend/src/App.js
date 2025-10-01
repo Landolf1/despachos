@@ -777,19 +777,16 @@ function App() {
               </div>
               
               <div>
-                <label className="block text-sm font-semibold text-gray-700 mb-2">Nombre del Cliente</label>
-                <input
-                  type="text"
-                  placeholder="Ingrese el nombre del cliente"
-                  value={newCard.client_name}
-                  onChange={(e) => setNewCard(prev => ({ ...prev, client_name: e.target.value }))}
+                <label className="block text-sm font-semibold text-gray-700 mb-2">Tipo de Tarjeta</label>
+                <select
+                  value={newCard.card_type}
+                  onChange={(e) => setNewCard(prev => ({ ...prev, card_type: e.target.value }))}
                   className="w-full p-4 border-2 border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white/80 backdrop-blur-sm transition-all duration-200"
-                  onKeyPress={(e) => {
-                    if (e.key === 'Enter') {
-                      handleAddCard();
-                    }
-                  }}
-                />
+                >
+                  <option value="Débito">Débito</option>
+                  <option value="Masivas">Masivas</option>
+                  <option value="Tracking">Tracking</option>
+                </select>
               </div>
             </div>
             
