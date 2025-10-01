@@ -18,7 +18,10 @@ function App() {
   const [loading, setLoading] = useState(false);
   const [notifications, setNotifications] = useState([]);
   const [showAddCardModal, setShowAddCardModal] = useState(false);
-  const [newCard, setNewCard] = useState({ card_number: '', client_name: '' });
+  const [newCard, setNewCard] = useState({ card_number: '', card_type: 'Débito' });
+  const [isListeningBarcode, setIsListeningBarcode] = useState(false);
+  const [barcodeBuffer, setBarcodeBuffer] = useState('');
+  const [lastKeystroke, setLastKeystroke] = useState(0);
 
   useEffect(() => {
     fetchMessengers();
