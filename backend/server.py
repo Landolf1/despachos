@@ -317,30 +317,51 @@ async def export_daily_report_excel(date: Optional[str] = None):
         # Create Excel file
         output = BytesIO()
         
-        # Create DataFrames
-        summary_data = {
-            'Métrica': ['Fecha', 'Total Mensajeros', 'Total Despachos', 'Total Tarjetas'],
-            'Valor': [report['date'], report['total_messengers'], report['total_dispatches'], report['total_cards']]
-        }
-        
-        detail_data = []
-        for messenger_id, messenger_data in report['messengers'].items():
-            for dispatch in messenger_data['dispatches']:
-                for item in dispatch['items']:
-                    detail_data.append({
-                        'Mensajero': messenger_data['messenger_name'],
-                        'Contacto': messenger_data['messenger_contact'],
-                        'Fecha': date,
-                        'Hora': dispatch['time'].split('T')[1].split('.')[0],
-                        'Número Tarjeta': item['card_number'],
-                        'Nombre Cliente': item['client_name']
-                    })
-        
-        # Write to Excel
+        # Create DataFrames - One sheet per messenger
         with pd.ExcelWriter(output, engine='openpyxl') as writer:
+            # Summary sheet
+            summary_data = {
+                'Métrica': ['Fecha', 'Total Mensajeros', 'Total Despachos', 'Total Tarjetas'],
+                'Valor': [report['date'], report['total_messengers'], report['total_dispatches'], report['total_cards']]
+            }
             pd.DataFrame(summary_data).to_excel(writer, sheet_name='Resumen', index=False)
-            if detail_data:
-                pd.DataFrame(detail_data).to_excel(writer, sheet_name='Detalle', index=False)
+            
+            # Create one sheet per messenger
+            for messenger_id, messenger_data in report['messengers'].items():
+                messenger_name = messenger_data['messenger_name'].replace('/', '_')  # Clean sheet name
+                sheet_name = f"{messenger_name[:25]}"  # Limit sheet name length
+                
+                detail_data = []
+                for dispatch in messenger_data['dispatches']:
+                    for item in dispatch['items']:
+                        detail_data.append({
+                            'Mensajero': messenger_data['messenger_name'],
+                            'Contacto': messenger_data['messenger_contact'],
+                            'Fecha': date,
+                            'Hora': dispatch['time'].split('T')[1].split('.')[0],
+                            'Número Tarjeta': item['card_number'],
+                            'Tipo Tarjeta': item['card_type']
+                        })
+                
+                if detail_data:
+                    df = pd.DataFrame(detail_data)
+                    
+                    # Add summary at the top
+                    summary_row = pd.DataFrame([{
+                        'Mensajero': f"RESUMEN - {messenger_data['messenger_name']}",
+                        'Contacto': f"Total Tarjetas: {messenger_data['total_cards']}",
+                        'Fecha': f"Despachos: {len(messenger_data['dispatches'])}",
+                        'Hora': '',
+                        'Número Tarjeta': '',
+                        'Tipo Tarjeta': ''
+                    }])
+                    
+                    # Add empty row
+                    empty_row = pd.DataFrame([{col: '' for col in df.columns}])
+                    
+                    # Combine summary + empty + data
+                    final_df = pd.concat([summary_row, empty_row, df], ignore_index=True)
+                    final_df.to_excel(writer, sheet_name=sheet_name, index=False)
         
         output.seek(0)
         
