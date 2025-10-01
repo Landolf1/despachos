@@ -19,8 +19,6 @@ function App() {
   const [notifications, setNotifications] = useState([]);
   const [showAddCardModal, setShowAddCardModal] = useState(false);
   const [newCard, setNewCard] = useState({ card_number: '', client_name: '' });
-  
-  const scannerRef = useRef(null);
 
   useEffect(() => {
     fetchMessengers();
