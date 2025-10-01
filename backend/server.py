@@ -44,7 +44,7 @@ class MessengerCreate(BaseModel):
 
 class DispatchItem(BaseModel):
     card_number: str
-    client_name: str  # Changed from client_number to client_name
+    card_type: str  # "Masivas", "Débito", "Tracking"
 
 class Dispatch(BaseModel):
     id: str = Field(default_factory=lambda: str(uuid.uuid4()))
