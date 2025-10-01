@@ -125,95 +125,25 @@ function App() {
     }
   };
 
-  const startScanning = () => {
-    if (!selectedMessenger) {
-      showNotification('Seleccione un mensajero primero', 'error');
-      return;
-    }
-
-    setIsScanning(true);
-    
-    setTimeout(() => {
-      if (scannerRef.current) {
-        Quagga.init({
-          inputStream: {
-            name: "Live",
-            type: "LiveStream",
-            target: scannerRef.current,
-            constraints: {
-              width: 640,
-              height: 480,
-              facingMode: "environment"
-            }
-          },
-          locator: {
-            patchSize: "medium",
-            halfSample: true
-          },
-          numOfWorkers: 2,
-          decoder: {
-            readers: ["code_128_reader", "ean_reader", "ean_8_reader", "code_39_reader"]
-          },
-          locate: true
-        }, function(err) {
-          if (err) {
-            console.error('QuaggaJS failed to initialize:', err);
-            showNotification('Error al inicializar el escáner. Verifique los permisos de cámara.', 'error');
-            setIsScanning(false);
-            return;
-          }
-          Quagga.start();
-        });
-
-        Quagga.onDetected((result) => {
-          const cardNumber = result.codeResult.code;
-          processScannedCard(cardNumber);
-        });
-      }
-    }, 100);
-  };
-
-  const stopScanning = () => {
-    Quagga.stop();
-    setIsScanning(false);
-  };
-
-  const processScannedCard = (cardNumber) => {
-    // Check if already scanned
-    const alreadyScanned = scannedItems.find(item => item.card_number === cardNumber);
-    if (alreadyScanned) {
-      showNotification('Esta tarjeta ya fue escaneada', 'error');
-      return;
-    }
-
-    // Stop scanning and ask for client name
-    stopScanning();
-    const clientName = prompt('Ingrese el nombre del cliente:');
-    
-    if (clientName) {
-      const newItem = { card_number: cardNumber, client_name: clientName };
-      setScannedItems(prev => [...prev, newItem]);
-      
-      // Audio feedback
-      const audio = new Audio('data:audio/wav;base64,UklGRnoGAABXQVZFZm10IBAAAAABAAEAQB8AAEAfAAABAAgAZGF0YQoGAACBhYqFbF1fdJivrJBhNjVgodDbq2EcBj+a2/LDciUFLIHO8tiJNwgZaLvt559NEAxQp+PwtmMcBjiR1/LMeSwFJHfH8N2QQAoUXrTp66hVFApGn+DyvmEcBzuq3/PHfS0FKXnU8N2NRQ4ZaLvz6KNREAx/kOLtvmUiCjeP0fPRhzAEHny98OOPQAwXX7nn7qVUBj1/lODxummNLwgZaLnq4qNNBjxnq+LXgCkELHXJ8N6QQAtVo+H0vmlhFgdMm9r5wms0DEe/xd6lUBYGPXi48NyOPgcPX7ns4qBLBA0qL5c0j');
-      audio.play().catch(() => {});
-      
-      showNotification(`Tarjeta registrada:\nNúmero: ${cardNumber}\nCliente: ${clientName}`);
-    }
-  };
-
   const manualAddCard = () => {
-    const cardNumber = prompt('Número de tarjeta:');
-    const clientName = prompt('Nombre del cliente:');
-    
-    if (cardNumber && clientName) {
-      const alreadyScanned = scannedItems.find(item => item.card_number === cardNumber);
-      if (!alreadyScanned) {
-        setScannedItems(prev => [...prev, { card_number: cardNumber, client_name: clientName }]);
-        showNotification('Tarjeta agregada manualmente');
-      } else {
-        showNotification('Esta tarjeta ya fue agregada', 'error');
-      }
+    setNewCard({ card_number: '', client_name: '' });
+    setShowAddCardModal(true);
+  };
+
+  const handleAddCard = () => {
+    if (!newCard.card_number || !newCard.client_name) {
+      showNotification('Complete todos los campos', 'error');
+      return;
+    }
+
+    const alreadyScanned = scannedItems.find(item => item.card_number === newCard.card_number);
+    if (!alreadyScanned) {
+      setScannedItems(prev => [...prev, { ...newCard }]);
+      showNotification(`Tarjeta agregada:\nNúmero: ${newCard.card_number}\nCliente: ${newCard.client_name}`);
+      setShowAddCardModal(false);
+      setNewCard({ card_number: '', client_name: '' });
+    } else {
+      showNotification('Esta tarjeta ya fue agregada', 'error');
     }
   };
 
