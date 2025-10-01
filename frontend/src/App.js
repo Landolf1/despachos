@@ -306,54 +306,16 @@ function App() {
                 </select>
               </div>
 
-              {/* Scanner Controls */}
+              {/* Add Card Controls */}
               <div className="flex flex-wrap gap-4 mb-8">
-                {!isScanning ? (
-                  <button
-                    onClick={startScanning}
-                    disabled={loading}
-                    className="bg-gradient-to-r from-green-500 to-green-600 text-white px-8 py-4 rounded-xl hover:from-green-600 hover:to-green-700 transition-all duration-200 font-semibold flex items-center gap-3 shadow-lg shadow-green-500/25 transform hover:scale-105 disabled:opacity-50"
-                  >
-                    <span className="text-xl">📷</span>
-                    Iniciar Escáner
-                  </button>
-                ) : (
-                  <button
-                    onClick={stopScanning}
-                    className="bg-gradient-to-r from-red-500 to-red-600 text-white px-8 py-4 rounded-xl hover:from-red-600 hover:to-red-700 transition-all duration-200 font-semibold flex items-center gap-3 shadow-lg shadow-red-500/25"
-                  >
-                    <span className="text-xl">⏹️</span>
-                    Detener Escáner
-                  </button>
-                )}
-                
                 <button
                   onClick={manualAddCard}
                   className="bg-gradient-to-r from-blue-500 to-blue-600 text-white px-8 py-4 rounded-xl hover:from-blue-600 hover:to-blue-700 transition-all duration-200 font-semibold flex items-center gap-3 shadow-lg shadow-blue-500/25 transform hover:scale-105"
                 >
                   <span className="text-xl">➕</span>
-                  Agregar Manual
+                  Agregar Tarjeta
                 </button>
               </div>
-
-              {/* Scanner */}
-              {isScanning && (
-                <div className="mb-8">
-                  <div className="bg-gray-900 rounded-2xl p-6 relative overflow-hidden">
-                    <div className="absolute inset-0 bg-gradient-to-r from-blue-600/20 to-purple-600/20 rounded-2xl"></div>
-                    <div ref={scannerRef} className="relative z-10 w-full max-w-lg mx-auto rounded-xl overflow-hidden" />
-                    <div className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 w-64 h-32 border-2 border-green-400 rounded-lg pointer-events-none">
-                      <div className="absolute top-0 left-0 w-6 h-6 border-t-2 border-l-2 border-green-400 rounded-tl-lg"></div>
-                      <div className="absolute top-0 right-0 w-6 h-6 border-t-2 border-r-2 border-green-400 rounded-tr-lg"></div>
-                      <div className="absolute bottom-0 left-0 w-6 h-6 border-b-2 border-l-2 border-green-400 rounded-bl-lg"></div>
-                      <div className="absolute bottom-0 right-0 w-6 h-6 border-b-2 border-r-2 border-green-400 rounded-br-lg"></div>
-                    </div>
-                  </div>
-                  <p className="text-sm text-gray-600 mt-4 text-center bg-blue-50 py-2 px-4 rounded-lg">
-                    🎯 Apunte la cámara hacia el código de barras de la tarjeta
-                  </p>
-                </div>
-              )}
 
               {/* Scanned Items */}
               {scannedItems.length > 0 && (
