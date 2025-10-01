@@ -3,11 +3,6 @@ import { createClient } from '@supabase/supabase-js';
 import Quagga from 'quagga';
 import './App.css';
 
-// Supabase configuration
-const supabaseUrl = 'https://zptfgrmjfnadngrqeakx.supabase.co';
-const supabaseAnonKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InpwdGZncm1qZm5hZG5ncnFlYWt4Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTkxNjg3NDYsImV4cCI6MjA3NDc0NDc0Nn0.wpB93p-_MR7pCAwFVUbeCt8a0uyZmdrBwwvjr8YTP5Q';
-const supabase = createClient(supabaseUrl, supabaseAnonKey);
-
 const BACKEND_URL = process.env.REACT_APP_BACKEND_URL;
 const API = `${BACKEND_URL}/api`;
 
@@ -16,15 +11,15 @@ function App() {
   const [messengers, setMessengers] = useState([]);
   const [selectedMessenger, setSelectedMessenger] = useState('');
   const [scannedItems, setScannedItems] = useState([]);
-  const [isScanning, setIsScanning] = useState(false);
   const [todayDispatches, setTodayDispatches] = useState([]);
   const [newMessenger, setNewMessenger] = useState({ name: '', contact_number: '' });
   const [showAddMessenger, setShowAddMessenger] = useState(false);
   const [dailyReport, setDailyReport] = useState(null);
   const [selectedDate, setSelectedDate] = useState(new Date().toISOString().split('T')[0]);
-  const [clientName, setClientName] = useState(''); // New state for client name input
   const [loading, setLoading] = useState(false);
   const [notifications, setNotifications] = useState([]);
+  const [showAddCardModal, setShowAddCardModal] = useState(false);
+  const [newCard, setNewCard] = useState({ card_number: '', client_name: '' });
   
   const scannerRef = useRef(null);
 
