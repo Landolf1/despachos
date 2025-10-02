@@ -107,13 +107,13 @@ def create_tables_and_data():
                 cur.execute(
                     "INSERT INTO messengers (id, name, contact_number) VALUES (%s, %s, %s) ON CONFLICT (id) DO NOTHING",
                     messenger
-                )\n                print(f"Inserted sample messenger: {messenger[1]}")
+                )
+                print(f"Inserted sample messenger: {messenger[1]}")
             except Exception as e:
                 print(f"Error inserting messenger {messenger[1]}: {str(e)}")
         
         # Commit changes
         conn.commit()
-        
         # Verify data
         cur.execute("SELECT COUNT(*) FROM messengers")
         count = cur.fetchone()[0]

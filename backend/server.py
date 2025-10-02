@@ -15,11 +15,14 @@ from fastapi.responses import StreamingResponse
 
 
 ROOT_DIR = Path(__file__).parent
+# Cargar variables de entorno
 load_dotenv(ROOT_DIR / '.env')
+if os.getenv('ENVIRONMENT') == 'production':
+    load_dotenv(ROOT_DIR.parent / '.env.production')
 
-# Supabase configuration
-SUPABASE_URL = "https://zptfgrmjfnadngrqeakx.supabase.co"
-SUPABASE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InpwdGZncm1qZm5hZG5ncnFlYWt4Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTkxNjg3NDYsImV4cCI6MjA3NDc0NDc0Nn0.wpB93p-_MR7pCAwFVUbeCt8a0uyZmdrBwwvjr8YTP5Q"
+# Supabase configuration - usar variables de entorno
+SUPABASE_URL = os.getenv('SUPABASE_URL', "https://zptfgrmjfnadngrqeakx.supabase.co")
+SUPABASE_KEY = os.getenv('SUPABASE_KEY', "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InpwdGZncm1qZm5hZG5ncnFlYWt4Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTkxNjg3NDYsImV4cCI6MjA3NDc0NDc0Nn0.wpB93p-_MR7pCAwFVUbeCt8a0uyZmdrBwwvjr8YTP5Q")
 
 # Initialize Supabase client
 supabase: Client = create_client(SUPABASE_URL, SUPABASE_KEY)
@@ -390,16 +393,23 @@ app.include_router(api_router)
 app.add_middleware(
     CORSMiddleware,
     allow_credentials=True,
-    allow_origins=["*"],
+    allow_origins=["*"],  # En producción, especifica los dominios permitidos
     allow_methods=["*"],
     allow_headers=["*"],
 )
 
-# Configure logging
-logging.basicConfig(
-    level=logging.INFO,
-    format='%(asctime)s - %(name)s - %(levelname)s - %(message)s'
-)
+# Configure logging for production
+if os.getenv('ENVIRONMENT') == 'production':
+    logging.basicConfig(
+        level=logging.INFO,
+        format='%(asctime)s - %(name)s - %(levelname)s - %(message)s'
+    )
+else:
+    logging.basicConfig(
+        level=logging.DEBUG,
+        format='%(asctime)s - %(name)s - %(levelname)s - %(message)s'
+    )
+
 logger = logging.getLogger(__name__)
 
 @app.on_event("startup")
