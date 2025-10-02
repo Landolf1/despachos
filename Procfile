@@ -1,2 +1,1 @@
-echo "web: gunicorn -k uvicorn.workers.UvicornWorker despachos.backend.server:app" > Procfile
-
+web: gunicorn -k uvicorn.workers.UvicornWorker despachos.backend.server:app
