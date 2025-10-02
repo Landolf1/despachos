@@ -1,0 +1,45 @@
+# =============================================================================
+# Sistema de Control de Despachos - Requirements Unificado
+# =============================================================================
+# Este archivo combina dependencias para desarrollo y producción
+# Compatible con: desarrollo local, Render, Railway, Heroku
+
+# =============================================================================
+# DEPENDENCIAS PRINCIPALES (Producción)
+# =============================================================================
+fastapi==0.110.1              # Framework web principal
+uvicorn[standard]==0.25.0     # Servidor ASGI (con gunicorn para producción)
+gunicorn==21.2.0              # WSGI server para producción (Render/Heroku)
+python-dotenv==1.1.1          # Manejo de variables de entorno
+pandas==2.3.2                 # Procesamiento de datos y generación Excel
+openpyxl==3.1.2               # Motor de Excel para pandas
+supabase==2.20.0              # Cliente de Supabase
+pydantic==2.11.9              # Validación de datos
+
+# =============================================================================
+# DEPENDENCIAS ADICIONALES
+# =============================================================================
+python-multipart==0.0.20     # Manejo de formularios multipart
+python-jose[cryptography]==3.5.0  # JWT tokens (si se necesita autenticación)
+passlib[bcrypt]==1.7.4        # Hashing de contraseñas
+email-validator==2.3.0        # Validación de emails
+
+# =============================================================================
+# HERRAMIENTAS DE DESARROLLO (Opcionales)
+# =============================================================================
+pytest==8.4.2                 # Testing
+black==25.9.0                 # Formateo de código
+flake8==7.3.0                 # Linting
+
+# =============================================================================
+# INSTALACIÓN
+# =============================================================================
+# Para desarrollo local:
+#   pip install -r requirements.txt
+#
+# Para producción (Render/Railway/Heroku):
+#   pip install -r requirements.txt
+#
+# Para desarrollo mínimo:
+#   pip install fastapi uvicorn python-dotenv pandas openpyxl supabase
+# =============================================================================
